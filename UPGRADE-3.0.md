@@ -20,9 +20,25 @@ UPGRADE FROM 2.x to 3.0
 
 ### Form
 
- * Passing a `Symfony\Component\HttpFoundation\Request` instance to
-   `FormInterface::bind()` was disabled. You should use
-   `FormInterface::handleRequest()` instead.
+ * The methods `Form::bind()` and `Form::isBound()` were removed. You should
+   use `Form::submit()` and `Form::isSubmitted()` instead.
+
+   Before:
+
+   ```
+   $form->bind(array(...));
+   ```
+
+   After:
+
+   ```
+   $form->submit(array(...));
+   ```
+
+ * Passing a `Symfony\Component\HttpFoundation\Request` instance, as was
+   supported by `FormInterface::bind()`, is not possible with
+   `FormInterface::submit()` anymore. You should use `FormInterface::handleRequest()`
+   instead.
 
    Before:
 
@@ -39,7 +55,7 @@ UPGRADE FROM 2.x to 3.0
    After:
 
    ```
-   $form->handleRequest();
+   $form->handleRequest($request);
 
    if ($form->isValid()) {
        // ...
@@ -47,18 +63,37 @@ UPGRADE FROM 2.x to 3.0
    ```
 
    If you want to test whether the form was submitted separately, you can use
-   the method `isBound()`:
+   the method `isSubmitted()`:
 
    ```
-   $form->handleRequest();
+   $form->handleRequest($request);
 
-   if ($form->isBound()) {
+   if ($form->isSubmitted()) {
       // ...
 
       if ($form->isValid()) {
           // ...
       }
    }
+   ```
+
+ * The events PRE_BIND, BIND and POST_BIND were renamed to PRE_SUBMIT, SUBMIT
+   and POST_SUBMIT.
+
+   Before:
+
+   ```
+   $builder->addEventListener(FormEvents::PRE_BIND, function (FormEvent $event) {
+       // ...
+   });
+   ```
+
+   After:
+
+   ```
+   $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
+       // ...
+   });
    ```
 
  * The option "virtual" was renamed to "inherit_data".
@@ -96,6 +131,33 @@ UPGRADE FROM 2.x to 3.0
 
    $iterator = new InheritDataAwareIterator($forms);
    ```
+
+ * The `TypeTestCase` class was moved from the `Symfony\Component\Form\Tests\Extension\Core\Type` namespace to the `Symfony\Component\Form\Test` namespace.
+ 
+   Before:
+
+   ```
+   use Symfony\Component\Form\Tests\Extension\Core\Type\TypeTestCase
+
+   class MyTypeTest extends TypeTestCase
+   {
+       // ...
+   }
+   ```
+
+   After:
+
+   ```
+   use Symfony\Component\Form\Test\TypeTestCase;
+
+   class MyTypeTest extends TypeTestCase
+   {
+       // ...
+   }
+   ```
+
+ * The `FormItegrationTestCase` and `FormPerformanceTestCase` classes were moved form the `Symfony\Component\Form\Tests` namespace to the `Symfony\Component\Form\Test` namespace.
+
 
 ### FrameworkBundle
 
@@ -175,33 +237,38 @@ UPGRADE FROM 2.x to 3.0
     * `Symfony\Component\HttpKernel\Exception\FatalErrorException` -> `Symfony\Component\Debug\Exception\FatalErrorException`
     * `Symfony\Component\HttpKernel\Exception\FlattenException` -> `Symfony\Component\Debug\Exception\FlattenException`
 
-### Form
+### Locale
 
- * The `TypeTestCase` class was moved from the `Symfony\Component\Form\Tests\Extension\Core\Type` namespace to the `Symfony\Component\Form\Test` namespace.
- 
+ * The Locale component was removed and replaced by the Intl component.
+   Instead of the methods in `Symfony\Component\Locale\Locale`, you should use
+   these equivalent methods in `Symfony\Component\Intl\Intl` now:
+   
+    * `Locale::getDisplayCountries()` -> `Intl::getRegionBundle()->getCountryNames()`
+    * `Locale::getCountries()` -> `array_keys(Intl::getRegionBundle()->getCountryNames())`
+    * `Locale::getDisplayLanguages()` -> `Intl::getLanguageBundle()->getLanguageNames()`
+    * `Locale::getLanguages()` -> `array_keys(Intl::getLanguageBundle()->getLanguageNames())`
+    * `Locale::getDisplayLocales()` -> `Intl::getLocaleBundle()->getLocaleNames()`
+    * `Locale::getLocales()` -> `array_keys(Intl::getLocaleBundle()->getLocaleNames())`
+
+### PropertyAccess
+
+ * Renamed `PropertyAccess::getPropertyAccessor` to `createPropertyAccessor`.
+
    Before:
 
    ```
-   use Symfony\Component\Form\Tests\Extension\Core\Type\TypeTestCase
+   use Symfony\Component\PropertyAccess\PropertyAccess;
 
-   class MyTypeTest extends TypeTestCase
-   {
-       // ...
-   }
+   $accessor = PropertyAccess::getPropertyAccessor();
    ```
 
    After:
 
    ```
-   use Symfony\Component\Form\Test\TypeTestCase;
+   use Symfony\Component\PropertyAccess\PropertyAccess;
 
-   class MyTypeTest extends TypeTestCase
-   {
-       // ...
-   }
+   $accessor = PropertyAccess::createPropertyAccessor();
    ```
-
- * The `FormItegrationTestCase` and `FormPerformanceTestCase` classes were moved form the `Symfony\Component\Form\Tests` namespace to the `Symfony\Component\Form\Test` namespace.
 
 ### Routing
 
@@ -307,22 +374,6 @@ UPGRADE FROM 2.x to 3.0
    {{ form_end(form) }}
    ```
 
-### Yaml
-
- * The ability to pass file names to `Yaml::parse()` has been removed.
-
-   Before:
-
-   ```
-   Yaml::parse($fileName);
-   ```
-
-   After:
-
-   ```
-   Yaml::parse(file_get_contents($fileName));
-   ```
-
 ### Validator
 
  * The constraints `Optional` and `Required` were moved to the
@@ -355,4 +406,20 @@ UPGRADE FROM 2.x to 3.0
     * })
     */
    private $property;
+   ```
+
+### Yaml
+
+ * The ability to pass file names to `Yaml::parse()` has been removed.
+
+   Before:
+
+   ```
+   Yaml::parse($fileName);
+   ```
+
+   After:
+
+   ```
+   Yaml::parse(file_get_contents($fileName));
    ```

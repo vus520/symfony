@@ -54,6 +54,15 @@ class CrawlerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testAddInvalidNode()
+    {
+        $crawler = new Crawler();
+        $crawler->add(1);
+    }
+
+    /**
      * @covers Symfony\Component\DomCrawler\Crawler::addHtmlContent
      */
     public function testAddHtmlContent()
@@ -321,8 +330,8 @@ EOF
 
     public function testHtml()
     {
-        $this->assertEquals('<img alt="Bar"/>', $this->createTestCrawler()->filterXPath('//a[5]')->html());
-        $this->assertEquals('<input type="text" value="TextValue" name="TextName"/><input type="submit" value="FooValue" name="FooName" id="FooId"/><input type="button" value="BarValue" name="BarName" id="BarId"/><button value="ButtonValue" name="ButtonName" id="ButtonId"/>'
+        $this->assertEquals('<img alt="Bar">', $this->createTestCrawler()->filterXPath('//a[5]')->html());
+        $this->assertEquals('<input type="text" value="TextValue" name="TextName"><input type="submit" value="FooValue" name="FooName" id="FooId"><input type="button" value="BarValue" name="BarName" id="BarId"><button value="ButtonValue" name="ButtonName" id="ButtonId"></button>'
             , trim($this->createTestCrawler()->filterXPath('//form[@id="FooFormId"]')->html()));
 
         try {

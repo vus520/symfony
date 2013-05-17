@@ -35,6 +35,10 @@ class Filesystem
      */
     public function copy($originFile, $targetFile, $override = false)
     {
+        if (stream_is_local($originFile) && !is_file($originFile)) {
+            throw new IOException(sprintf('Failed to copy %s because file not exists', $originFile));
+        }
+
         $this->mkdir(dirname($targetFile));
 
         if (!$override && is_file($targetFile)) {
@@ -44,7 +48,15 @@ class Filesystem
         }
 
         if ($doCopy) {
-            if (true !== @copy($originFile, $targetFile)) {
+            // https://bugs.php.net/bug.php?id=64634
+            $source = fopen($originFile, 'r');
+            $target = fopen($targetFile, 'w+');
+            stream_copy_to_stream($source, $target);
+            fclose($source);
+            fclose($target);
+            unset($source, $target);
+
+            if (!is_file($targetFile)) {
                 throw new IOException(sprintf('Failed to copy %s to %s', $originFile, $targetFile));
             }
         }
@@ -224,16 +236,17 @@ class Filesystem
     /**
      * Renames a file.
      *
-     * @param string $origin The origin filename
-     * @param string $target The new filename
+     * @param string  $origin    The origin filename
+     * @param string  $target    The new filename
+     * @param Boolean $overwrite Whether to overwrite the target if it already exists
      *
      * @throws IOException When target file already exists
      * @throws IOException When origin cannot be renamed
      */
-    public function rename($origin, $target)
+    public function rename($origin, $target, $overwrite = false)
     {
         // we check that target does not exist
-        if (is_readable($target)) {
+        if (!$overwrite && is_readable($target)) {
             throw new IOException(sprintf('Cannot rename because the target "%s" already exist.', $target));
         }
 
@@ -452,7 +465,7 @@ class Filesystem
             throw new IOException(sprintf('Failed to write file "%s".', $filename));
         }
 
-        $this->rename($tmpFile, $filename);
+        $this->rename($tmpFile, $filename, true);
         $this->chmod($filename, $mode);
     }
 }
