@@ -58,7 +58,9 @@ class Crawler extends \SplObjectStorage
      * This method uses the appropriate specialized add*() method based
      * on the type of the argument.
      *
-     * @param null|\DOMNodeList|array|\DOMNode $node A node
+     * @param \DOMNodeList|\DOMNode|array|string|null $node A node
+     *
+     * @throws \InvalidArgumentException When node is not the expected type.
      *
      * @api
      */
@@ -66,12 +68,14 @@ class Crawler extends \SplObjectStorage
     {
         if ($node instanceof \DOMNodeList) {
             $this->addNodeList($node);
+        } elseif ($node instanceof \DOMNode) {
+            $this->addNode($node);
         } elseif (is_array($node)) {
             $this->addNodes($node);
         } elseif (is_string($node)) {
             $this->addContent($node);
-        } elseif (is_object($node)) {
-            $this->addNode($node);
+        } elseif (null !== $node) {
+            throw new \InvalidArgumentException(sprintf('Expecting a DOMNodeList or DOMNode instance, an array, a string, or null, but got "%s".', is_object($node) ? get_class($node) : gettype($node)));
         }
     }
 
@@ -495,7 +499,15 @@ class Crawler extends \SplObjectStorage
 
         $html = '';
         foreach ($this->getNode(0)->childNodes as $child) {
-            $html .= $child->ownerDocument->saveXML($child);
+            if (version_compare(PHP_VERSION, '5.3.6', '>=')) {
+                // node parameter was added to the saveHTML() method in PHP 5.3.6
+                // @see http://php.net/manual/en/domdocument.savehtml.php
+                $html .= $child->ownerDocument->saveHTML($child);
+            } else {
+                $document = new \DOMDocument('1.0', 'UTF-8');
+                $document->appendChild($document->importNode($child, true));
+                $html .= rtrim($document->saveHTML());
+            }
         }
 
         return $html;

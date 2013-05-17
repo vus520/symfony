@@ -206,7 +206,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
             ->getForm();
 
         // Launch transformer
-        $form->bind(array());
+        $form->submit(array());
 
         $context->expects($this->never())
             ->method('validate');
@@ -235,7 +235,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
             ->getForm();
 
         // Launch transformer
-        $form->bind('foo');
+        $form->submit('foo');
 
         $context->expects($this->never())
             ->method('validate');
@@ -275,7 +275,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
             ->getForm();
 
         // Launch transformer
-        $form->bind('foo');
+        $form->submit('foo');
 
         $context->expects($this->never())
             ->method('validate');
@@ -314,7 +314,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
             ->getForm();
 
         // Launch transformer
-        $form->bind(array());
+        $form->submit(array());
 
         $context->expects($this->never())
             ->method('validate');
@@ -346,7 +346,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
             ->getForm();
 
         // Launch transformer
-        $form->bind(array('child' => 'foo'));
+        $form->submit(array('child' => 'foo'));
 
         $context->expects($this->never())
             ->method('addViolation');
@@ -372,6 +372,23 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         $context->expects($this->at(1))
             ->method('validate')
             ->with($object, 'data', 'group2', true);
+
+        $this->validator->initialize($context);
+        $this->validator->validate($form, new Form());
+    }
+
+    public function testDontExecuteFunctionNames()
+    {
+        $context = $this->getMockExecutionContext();
+        $object = $this->getMock('\stdClass');
+        $options = array('validation_groups' => 'header');
+        $form = $this->getBuilder('name', '\stdClass', $options)
+            ->setData($object)
+            ->getForm();
+
+        $context->expects($this->once())
+            ->method('validate')
+            ->with($object, 'data', 'header', true);
 
         $this->validator->initialize($context);
         $this->validator->validate($form, new Form());
@@ -582,7 +599,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
             ->add($this->getBuilder('child'))
             ->getForm();
 
-        $form->bind(array('foo' => 'bar'));
+        $form->submit(array('foo' => 'bar'));
 
         $context->expects($this->once())
             ->method('addViolation')
@@ -717,7 +734,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
 
     private function getClickedSubmitButton($name = 'name', array $options = array())
     {
-        return $this->getSubmitButton($name, $options)->bind('');
+        return $this->getSubmitButton($name, $options)->submit('');
     }
 
     /**

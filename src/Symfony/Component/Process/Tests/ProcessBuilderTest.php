@@ -15,10 +15,7 @@ use Symfony\Component\Process\ProcessBuilder;
 
 class ProcessBuilderTest extends \PHPUnit_Framework_TestCase
 {
-    /**
-     * @test
-     */
-    public function shouldInheritEnvironmentVars()
+    public function testInheritEnvironmentVars()
     {
         $snapshot = $_ENV;
         $_ENV = $expected = array('foo' => 'bar');
@@ -32,10 +29,7 @@ class ProcessBuilderTest extends \PHPUnit_Framework_TestCase
         $_ENV = $snapshot;
     }
 
-    /**
-     * @test
-     */
-    public function shouldInheritAndOverrideEnvironmentVars()
+    public function testProcessShouldInheritAndOverrideEnvironmentVars()
     {
         $snapshot = $_ENV;
         $_ENV = array('foo' => 'bar', 'bar' => 'baz');
@@ -51,10 +45,7 @@ class ProcessBuilderTest extends \PHPUnit_Framework_TestCase
         $_ENV = $snapshot;
     }
 
-    /**
-     * @test
-     */
-    public function shouldInheritEnvironmentVarsByDefault()
+    public function testInheritEnvironmentVarsByDefault()
     {
         $pb = new ProcessBuilder();
         $proc = $pb->add('foo')->getProcess();
@@ -62,10 +53,7 @@ class ProcessBuilderTest extends \PHPUnit_Framework_TestCase
         $this->assertNull($proc->getEnv());
     }
 
-    /**
-     * @test
-     */
-    public function shouldNotReplaceExplicitlySetVars()
+    public function testNotReplaceExplicitlySetVars()
     {
         $snapshot = $_ENV;
         $_ENV = array('foo' => 'bar');
@@ -122,10 +110,18 @@ class ProcessBuilderTest extends \PHPUnit_Framework_TestCase
         $pb->setPrefix('/usr/bin/php');
 
         $proc = $pb->setArguments(array('-v'))->getProcess();
-        $this->assertEquals("'/usr/bin/php' '-v'", $proc->getCommandLine());
+        if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->assertEquals('"/usr/bin/php" "-v"', $proc->getCommandLine());
+        } else {
+            $this->assertEquals("'/usr/bin/php' '-v'", $proc->getCommandLine());
+        }
 
         $proc = $pb->setArguments(array('-i'))->getProcess();
-        $this->assertEquals("'/usr/bin/php' '-i'", $proc->getCommandLine());
+        if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->assertEquals('"/usr/bin/php" "-i"', $proc->getCommandLine());
+        } else {
+            $this->assertEquals("'/usr/bin/php' '-i'", $proc->getCommandLine());
+        }
     }
 
     public function testShouldEscapeArguments()
@@ -137,6 +133,52 @@ class ProcessBuilderTest extends \PHPUnit_Framework_TestCase
             $this->assertSame('^%"path"^% "foo "\\"" bar"', $proc->getCommandLine());
         } else {
             $this->assertSame("'%path%' 'foo \" bar'", $proc->getCommandLine());
+        }
+    }
+
+    public function testShouldEscapeArgumentsAndPrefix()
+    {
+        $pb = new ProcessBuilder(array('arg'));
+        $pb->setPrefix('%prefix%');
+        $proc = $pb->getProcess();
+
+        if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->assertSame('^%"prefix"^% "arg"', $proc->getCommandLine());
+        } else {
+            $this->assertSame("'%prefix%' 'arg'", $proc->getCommandLine());
+        }
+    }
+
+    /**
+     * @expectedException \Symfony\Component\Process\Exception\LogicException
+     */
+    public function testShouldThrowALogicExceptionIfNoPrefixAndNoArgument()
+    {
+        ProcessBuilder::create()->getProcess();
+    }
+
+    public function testShouldNotThrowALogicExceptionIfNoArgument()
+    {
+        $process = ProcessBuilder::create()
+            ->setPrefix('/usr/bin/php')
+            ->getProcess();
+
+        if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->assertEquals('"/usr/bin/php"', $process->getCommandLine());
+        } else {
+            $this->assertEquals("'/usr/bin/php'", $process->getCommandLine());
+        }
+    }
+
+    public function testShouldNotThrowALogicExceptionIfNoPrefix()
+    {
+        $process = ProcessBuilder::create(array('/usr/bin/php'))
+            ->getProcess();
+
+        if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->assertEquals('"/usr/bin/php"', $process->getCommandLine());
+        } else {
+            $this->assertEquals("'/usr/bin/php'", $process->getCommandLine());
         }
     }
 }

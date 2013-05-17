@@ -11,6 +11,8 @@
 
 namespace Symfony\Component\HttpKernel;
 
+use Symfony\Bridge\ProxyManager\LazyProxy\Instantiator\RuntimeInstantiator;
+use Symfony\Bridge\ProxyManager\LazyProxy\PhpDumper\ProxyDumper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
@@ -59,10 +61,10 @@ abstract class Kernel implements KernelInterface, TerminableInterface
     protected $classes;
     protected $loadClassCache;
 
-    const VERSION         = '2.3.0-DEV';
-    const VERSION_ID      = '20300';
+    const VERSION         = '2.4.0-DEV';
+    const VERSION_ID      = '20400';
     const MAJOR_VERSION   = '2';
-    const MINOR_VERSION   = '3';
+    const MINOR_VERSION   = '4';
     const RELEASE_VERSION = '0';
     const EXTRA_VERSION   = 'DEV';
 
@@ -684,7 +686,13 @@ abstract class Kernel implements KernelInterface, TerminableInterface
      */
     protected function getContainerBuilder()
     {
-        return new ContainerBuilder(new ParameterBag($this->getKernelParameters()));
+        $container = new ContainerBuilder(new ParameterBag($this->getKernelParameters()));
+
+        if (class_exists('ProxyManager\Configuration')) {
+            $container->setProxyInstantiator(new RuntimeInstantiator());
+        }
+
+        return $container;
     }
 
     /**
@@ -699,6 +707,11 @@ abstract class Kernel implements KernelInterface, TerminableInterface
     {
         // cache the container
         $dumper = new PhpDumper($container);
+
+        if (class_exists('ProxyManager\Configuration')) {
+            $dumper->setProxyDumper(new ProxyDumper());
+        }
+
         $content = $dumper->dump(array('class' => $class, 'base_class' => $baseClass));
         if (!$this->debug) {
             $content = self::stripComments($content);
